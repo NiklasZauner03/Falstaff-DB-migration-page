@@ -13,18 +13,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Deploy via rsync to /var/www/maintenance
+      - name: Deploy via rsync
         run: |
           echo "$SSH_KEY" > deploy_key.pem
           chmod 600 deploy_key.pem
-
-          echo "🔁 Deployment nach: /var/www/maintenance"
-
+          
+          echo "🔁 Deployment nach: /var/www/${{ github.event.repository.name }}"
+          
           rsync -avzr --delete \
             -e "ssh -i deploy_key.pem -o StrictHostKeyChecking=no" \
             ./maintenance-page/ \
-            $SSH_USER@$SSH_HOST:/var/www/maintenance
-
+            $SSH_USER@$SSH_HOST:/var/www/${{ github.event.repository.name }}
+          
           rm -f deploy_key.pem
         env:
           SSH_KEY: ${{ secrets.TESTSERVER_SSH_KEY }}
