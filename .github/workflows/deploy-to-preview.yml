@@ -1,4 +1,4 @@
-name: Deploy Maintenance Page
+name: Deploy Static Files to Testserver
 
 on:
   push:
@@ -13,18 +13,22 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Deploy via rsync
+      - name: Deploy repository content via rsync
         run: |
           echo "$SSH_KEY" > deploy_key.pem
           chmod 600 deploy_key.pem
-          
-          echo "🔁 Deployment nach: /var/www/${{ github.event.repository.name }}"
-          
-          rsync -avzr --delete \
-            -e "ssh -i deploy_key.pem -o StrictHostKeyChecking=no" \
-            ./maintenance-page/ \
-            $SSH_USER@$SSH_HOST:/var/www/${{ github.event.repository.name }}
-          
+
+          REPO_NAME="${{ github.event.repository.name }}"
+          TARGET_PATH="/var/www/$REPO_NAME"
+
+          echo "🔁 Deployment nach: $TARGET_PATH"
+
+          # Sync gesamter Repo-Inhalt (ohne .git)
+          rsync -avzr --delete --exclude=".git" -e "ssh -i deploy_key.pem -o StrictHostKeyChecking=no" ./ $SSH_USER@$SSH_HOST:$TARGET_PATH
+
+          # Führe remote das Setup-Skript aus
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "bash /opt/setup-preview-site.sh $REPO_NAME"
+
           rm -f deploy_key.pem
         env:
           SSH_KEY: ${{ secrets.TESTSERVER_SSH_KEY }}
